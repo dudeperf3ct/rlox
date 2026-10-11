@@ -1,6 +1,6 @@
 use crate::{
     errors::{LexerError, LexerResult},
-    token_type::TokenKind,
+    token_type::{TokenKind, get_keyword_mapping},
 };
 
 #[derive(Debug, PartialEq)]
@@ -28,7 +28,7 @@ impl Location {
     }
 }
 
-fn tokenize(mut input: &str) -> LexerResult<Vec<Token>> {
+pub fn tokenize(mut input: &str) -> LexerResult<Vec<Token>> {
     let mut res = Vec::new();
     let mut loc = Location::default();
 
@@ -54,7 +54,7 @@ fn tokenize(mut input: &str) -> LexerResult<Vec<Token>> {
         let consumed = old_input.len() - input.len();
         loc.advance(&old_input[..consumed]);
 
-        dbg!(&res);
+        // dbg!(&res);
     }
 
     // Add EOF token last
@@ -79,9 +79,9 @@ fn skip_comment(input: &mut &str) {
 
 fn advance(input: &mut &str) -> LexerResult<TokenKind> {
     let mut chars = input.chars();
-    dbg!(&chars);
+    // dbg!(&chars);
     let c = chars.next().unwrap();
-    dbg!(&c);
+    // dbg!(&c);
     let res = match &c {
         ',' => TokenKind::Comma,
         '.' => TokenKind::Dot,
@@ -151,7 +151,6 @@ fn advance(input: &mut &str) -> LexerResult<TokenKind> {
             let mut is_float = false;
             loop {
                 let next_char = chars.clone().next();
-                dbg!(&next_char);
                 match next_char {
                     Some(c) if c.is_numeric() => {
                         chars.next();
@@ -160,7 +159,6 @@ fn advance(input: &mut &str) -> LexerResult<TokenKind> {
                     Some('.') => {
                         let mut look_ahead = chars.clone();
                         look_ahead.next();
-                        dbg!(&look_ahead);
                         if look_ahead.next().is_some_and(|c| c.is_numeric()) {
                             buff.push('.');
                             chars.next();
@@ -172,6 +170,7 @@ fn advance(input: &mut &str) -> LexerResult<TokenKind> {
                     Some(_) | None => break,
                 }
             }
+            // TODO: Handle error propagation for number execeeding `i64::MAX`
             if is_float {
                 TokenKind::FNumber(buff.parse::<f64>().unwrap())
             } else {
@@ -180,7 +179,9 @@ fn advance(input: &mut &str) -> LexerResult<TokenKind> {
         }
         // Identifer Literal
         // Exclude digits for start of the identifier
+        // Also handle reserved keywords (if exact match in hashmap)
         c if c.is_ascii_alphabetic() || *c == '_' => {
+            let keyword_map = get_keyword_mapping();
             // Look for valid alphanumeric characters
             let mut buff = String::new();
             buff.push(*c);
@@ -195,15 +196,14 @@ fn advance(input: &mut &str) -> LexerResult<TokenKind> {
                     _ => break,
                 }
             }
-
-            TokenKind::Ident(buff)
+            if keyword_map.contains_key(&buff) {
+                keyword_map.get(&buff).unwrap().clone()
+            } else {
+                TokenKind::Ident(buff)
+            }
         }
-
-        // Reserved Keywords
-        _ => todo!(),
+        c => return Err(LexerError::new(format!("Unexpected character: {c}"))),
     };
-
-    dbg!(&chars);
 
     *input = chars.as_str();
     Ok(res)
@@ -377,7 +377,6 @@ mod tests {
                 loc: Location { line: 0, column: 1 },
             },
         ];
-        dbg!(tokenize(lox_code));
         assert_eq!(tokenize(lox_code).unwrap(), expected);
     }
 
@@ -394,7 +393,6 @@ mod tests {
                 loc: Location { line: 0, column: 4 },
             },
         ];
-        dbg!(tokenize(lox_code));
         assert_eq!(tokenize(lox_code).unwrap(), expected);
     }
 
@@ -437,7 +435,6 @@ mod tests {
             },
         ];
 
-        dbg!(tokenize(lox_code));
         assert_eq!(tokenize(lox_code).unwrap(), expected);
     }
 
@@ -484,12 +481,110 @@ mod tests {
         assert_eq!(tokenize(lox_code).unwrap(), expected);
     }
 
-    // #[test]
-    // fn tokenize_unexpected_character() {
-    //     let lox_code = "@";
+    #[test]
+    fn tokenize_keywords() {
+        let lox_code = "1 or 2; var1 = truefalse;";
+        let expected = vec![
+            Token {
+                kind: TokenKind::INumber(1),
+                loc: Location { line: 0, column: 0 },
+            },
+            Token {
+                kind: TokenKind::KwOr,
+                loc: Location { line: 0, column: 2 },
+            },
+            Token {
+                kind: TokenKind::INumber(2),
+                loc: Location { line: 0, column: 5 },
+            },
+            Token {
+                kind: TokenKind::Semicolon,
+                loc: Location { line: 0, column: 6 },
+            },
+            Token {
+                kind: TokenKind::Ident("var1".to_string()),
+                loc: Location { line: 0, column: 8 },
+            },
+            Token {
+                kind: TokenKind::Eq,
+                loc: Location {
+                    line: 0,
+                    column: 13,
+                },
+            },
+            Token {
+                kind: TokenKind::Ident("truefalse".to_string()),
+                loc: Location {
+                    line: 0,
+                    column: 15,
+                },
+            },
+            Token {
+                kind: TokenKind::Semicolon,
+                loc: Location {
+                    line: 0,
+                    column: 24,
+                },
+            },
+            Token {
+                kind: TokenKind::Eof,
+                loc: Location {
+                    line: 0,
+                    column: 25,
+                },
+            },
+        ];
+        assert_eq!(tokenize(lox_code).unwrap(), expected);
+    }
 
-    //     let result = tokenize(lox_code);
+    #[test]
+    fn tokenize_keyword_vs_identifier() {
+        let lox_code = "var variable = true;";
+        let expected = vec![
+            Token {
+                kind: TokenKind::KwVar,
+                loc: Location { line: 0, column: 0 },
+            },
+            Token {
+                kind: TokenKind::Ident("variable".to_string()),
+                loc: Location { line: 0, column: 4 },
+            },
+            Token {
+                kind: TokenKind::Eq,
+                loc: Location {
+                    line: 0,
+                    column: 13,
+                },
+            },
+            Token {
+                kind: TokenKind::KwTrue,
+                loc: Location {
+                    line: 0,
+                    column: 15,
+                },
+            },
+            Token {
+                kind: TokenKind::Semicolon,
+                loc: Location {
+                    line: 0,
+                    column: 19,
+                },
+            },
+            Token {
+                kind: TokenKind::Eof,
+                loc: Location {
+                    line: 0,
+                    column: 20,
+                },
+            },
+        ];
+        assert_eq!(tokenize(lox_code).unwrap(), expected);
+    }
 
-    //     assert!(result.is_err());
-    // }
+    #[test]
+    fn tokenize_unexpected_character() {
+        let lox_code = "@";
+        let result = tokenize(lox_code);
+        assert!(result.is_err());
+    }
 }
