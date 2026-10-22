@@ -5,7 +5,7 @@ use crate::{
 
 #[derive(Debug, PartialEq)]
 pub struct Token {
-    kind: TokenKind,
+    pub kind: TokenKind,
     loc: Location,
 }
 

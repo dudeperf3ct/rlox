@@ -29,6 +29,7 @@ pub enum TokenKind {
     Bang,
     BangEq,
 
+    // Literal, Identifiers and Numerical
     Ident(String),
     StringLiteral(String),
     INumber(i64),
