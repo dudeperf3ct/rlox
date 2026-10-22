@@ -28,17 +28,29 @@ impl Parser {
         self.tokens.last()
     }
 
-    fn is_eof(&self) -> bool {
-        self.tokens.is_empty()
+    fn expect(&mut self, expected: TokenKind, err: &str) -> Result<(), ParserError> {
+        match self.peek() {
+            Some(actual) if actual.kind == expected => {
+                self.next_token()?;
+                Ok(())
+            }
+            Some(actual) => Err(ParserError::UnexpectedToken(actual.clone(), err.into())),
+            _ => Err(ParserError::MissingTokenMsg(err.into())),
+        }
     }
 
-    // primary → INTEGER | FLOAT | STRING | "true" | "false" | "nil"
+    // primary → INTEGER | FLOAT | STRING | grouping
     fn primary(&mut self) -> ParserResult<Expr> {
         let token = self.next_token()?;
         let expr = match token.kind {
             TokenKind::StringLiteral(x) => Expr::String(x),
             TokenKind::INumber(x) => Expr::Int(x),
             TokenKind::FNumber(x) => Expr::Float(x),
+            TokenKind::OpenParen => {
+                let expr = self.expression()?;
+                self.expect(TokenKind::CloseParen, "expected ) after expression")?;
+                Expr::Grouping(Box::new(expr))
+            }
             _ => return Err(ParserError::ExpectExpressionFound(token.lexeme)),
         };
         Ok(expr)
@@ -96,8 +108,13 @@ impl Parser {
     }
 
     // expression -> term
+    fn expression(&mut self) -> ParserResult<Expr> {
+        self.term()
+    }
+
+    // Parser convert tokens into expression
     fn parse(&mut self) -> ParserResult<Expr> {
-        let ast = self.term()?;
+        let ast = self.expression()?;
         let token = self.next_token()?;
         if token.kind != TokenKind::Eof || !self.tokens.is_empty() {
             return Err(ParserError::ExpectExpressionFound(token.lexeme));
@@ -154,6 +171,14 @@ mod tests {
     test_parse!(error parse_invalid_operator_sequence, "1 + * 2");
 
     test_parse!(error parse_empty_expression, "");
+
+    test_parse!(error parse_invalid_group, "(1 + 2");
+
+    test_parse!(error parse_empty_group, "()");
+
+    test_parse!(error parse_extra_closing_paren, "(1 + 2))");
+
+    test_parse!(error parse_missing_inner_paren, "((1 + 2)");
 
     test_parse!(parse_integer, "42", Expr::Int(42));
 
@@ -223,5 +248,43 @@ mod tests {
             TokenKind::Plus,
             Expr::Int(3)
         )
+    );
+
+    test_parse!(
+        parse_grouping,
+        "(1 + 2) * 3",
+        binary(
+            Expr::Grouping(Box::new(binary(
+                Expr::Int(1),
+                TokenKind::Plus,
+                Expr::Int(2)
+            ))),
+            TokenKind::Star,
+            Expr::Int(3)
+        )
+    );
+
+    test_parse!(
+        parse_grouping_overrides_precedence,
+        "1 * (2 + 3)",
+        binary(
+            Expr::Int(1),
+            TokenKind::Star,
+            Expr::Grouping(Box::new(binary(
+                Expr::Int(2),
+                TokenKind::Plus,
+                Expr::Int(3)
+            )))
+        )
+    );
+
+    test_parse!(
+        parse_nested_grouping,
+        "((1 + 2))",
+        Expr::Grouping(Box::new(Expr::Grouping(Box::new(binary(
+            Expr::Int(1),
+            TokenKind::Plus,
+            Expr::Int(2)
+        )))))
     );
 }

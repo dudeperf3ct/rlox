@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum TokenKind {
     // Single character symbols
     OpenParen,
@@ -10,14 +11,12 @@ pub enum TokenKind {
     Comma,
     Dot,
     Semicolon,
-    Slash,
+    Slash, // TODO: ForwardSlash vs BackwardSlash
 
     // BinOps
     Minus,
     Plus,
     Star,
-    And,
-    Or,
 
     // Multi character
     Eq,
@@ -73,4 +72,55 @@ pub fn get_keyword_mapping() -> HashMap<String, TokenKind> {
     reserved_keywords.insert("and".to_string(), TokenKind::KwAnd);
     reserved_keywords.insert("or".to_string(), TokenKind::KwOr);
     reserved_keywords
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use TokenKind::*;
+        write!(
+            f,
+            "{}",
+            match self {
+                OpenParen => "(",
+                CloseParen => ")",
+                OpenBrace => "{",
+                CloseBrace => "}",
+                Comma => ",",
+                Dot => ".",
+                Semicolon => ";",
+                Slash => "/",
+                Plus => "+",
+                Minus => "-",
+                Star => "*",
+                KwAnd => "and",
+                KwOr => "or",
+                Eq => "=",
+                EqEq => "==",
+                Gt => ">",
+                GtEq => ">=",
+                Bang => "!",
+                BangEq => "!=",
+                Lt => "<",
+                LtEq => "<=",
+                KwFunc => "fun",
+                KwResult => "result",
+                KwSuper => "super",
+                KwClass => "class",
+                KwPrint => "print",
+                KwVar => "var",
+                KwFor => "for",
+                KwWhile => "while",
+                KwIf => "if",
+                KwElse => "else",
+                KwTrue => "true",
+                KwFalse => "false",
+                KwNil => "nil",
+                Eof => "<eof>",
+                StringLiteral(_) => "<str>",
+                INumber(_) => "<numeric>",
+                FNumber(_) => "<numeric>",
+                Ident(_) => "<str>",
+            }
+        )
+    }
 }
