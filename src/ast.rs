@@ -48,8 +48,8 @@ impl From<TokenKind> for BinaryOp {
             TokenKind::GtEq => BinaryOp::GtEq,
             TokenKind::EqEq => BinaryOp::EqEq,
             TokenKind::BangEq => BinaryOp::BangEq,
-            TokenKind::And => BinaryOp::And,
-            TokenKind::Or => BinaryOp::Or,
+            TokenKind::KwAnd => BinaryOp::And,
+            TokenKind::KwOr => BinaryOp::Or,
             _ => unreachable!(),
         }
     }
@@ -64,4 +64,5 @@ pub enum Expr {
 
     Binary(Box<Expr>, BinaryOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
+    Grouping(Box<Expr>),
 }

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::lexer::Location;
+use crate::lexer::{Location, Token};
 use thiserror::Error;
 
 pub type LexerResult<T> = Result<T, LexerError>;
@@ -47,4 +47,10 @@ pub enum ParserError {
 
     #[error("Error at '{0}': Expect expression.")]
     ExpectExpressionFound(String),
+
+    #[error("Error at '{0}': {1}.")]
+    UnexpectedToken(Token, String),
+
+    #[error("Error {0}.")]
+    MissingTokenMsg(String),
 }

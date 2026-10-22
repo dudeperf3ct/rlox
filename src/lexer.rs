@@ -3,11 +3,25 @@ use crate::{
     token_type::{TokenKind, get_keyword_mapping},
 };
 
-#[derive(Debug, PartialEq)]
+use std::fmt;
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,
     loc: Location,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            TokenKind::INumber(_)
+            | TokenKind::FNumber(_)
+            | TokenKind::StringLiteral(_)
+            | TokenKind::Ident(_) => write!(f, "{}", self.lexeme),
+            _ => write!(f, "{}", self.kind),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
