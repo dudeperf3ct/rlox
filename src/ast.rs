@@ -61,6 +61,7 @@ pub enum Expr {
     Float(f64),
     Boolean(bool),
     String(String),
+    Nil,
 
     Binary(Box<Expr>, BinaryOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),

@@ -39,13 +39,16 @@ impl Parser {
         }
     }
 
-    // primary → INTEGER | FLOAT | STRING | grouping
+    // primary → INTEGER | FLOAT | STRING | true | false | nil | grouping
     fn primary(&mut self) -> ParserResult<Expr> {
         let token = self.next_token()?;
         let expr = match token.kind {
             TokenKind::StringLiteral(x) => Expr::String(x),
             TokenKind::INumber(x) => Expr::Int(x),
             TokenKind::FNumber(x) => Expr::Float(x),
+            TokenKind::KwNil => Expr::Nil,
+            TokenKind::KwTrue => Expr::Boolean(true),
+            TokenKind::KwFalse => Expr::Boolean(false),
             TokenKind::OpenParen => {
                 let expr = self.expression()?;
                 self.expect(TokenKind::CloseParen, "expected ) after expression")?;
@@ -286,5 +289,17 @@ mod tests {
             TokenKind::Plus,
             Expr::Int(2)
         )))))
+    );
+
+    test_parse!(parse_true_literal, "true", Expr::Boolean(true));
+
+    test_parse!(parse_false_literal, "false", Expr::Boolean(false));
+
+    test_parse!(parse_nil_literal, "nil", Expr::Nil);
+
+    test_parse!(
+        parse_unary_boolean,
+        "!false",
+        unary(UnaryOp::Not, Expr::Boolean(false))
     );
 }
