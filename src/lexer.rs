@@ -6,6 +6,7 @@ use crate::{
 #[derive(Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
+    pub lexeme: String,
     loc: Location,
 }
 
@@ -48,10 +49,14 @@ pub fn tokenize(mut input: &str) -> LexerResult<Vec<Token>> {
         }
 
         let kind = advance(&mut input).map_err(|err| err.with_location(loc))?;
-        res.push(Token { kind, loc });
+        let consumed = old_input.len() - input.len();
+        res.push(Token {
+            kind,
+            lexeme: old_input[..consumed].to_string(),
+            loc,
+        });
 
         // Update new location as tokens are consumed
-        let consumed = old_input.len() - input.len();
         loc.advance(&old_input[..consumed]);
 
         // dbg!(&res);
@@ -60,6 +65,7 @@ pub fn tokenize(mut input: &str) -> LexerResult<Vec<Token>> {
     // Add EOF token last
     res.push(Token {
         kind: TokenKind::Eof,
+        lexeme: "EOF".to_string(),
         loc,
     });
 
@@ -218,6 +224,7 @@ mod tests {
         let lox_code = "// nothing here";
         let expected = vec![Token {
             kind: TokenKind::Eof,
+            lexeme: "EOF".to_string(),
             loc: Location {
                 line: 0,
                 column: 15,
@@ -233,10 +240,12 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::Eq,
+                lexeme: "=".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 0, column: 4 },
             },
         ];
@@ -274,9 +283,7 @@ mod tests {
     #[test]
     fn location_advance_multiline_with_indentation() {
         let mut location = Location::default();
-
         location.advance("x=0;\n    x+=1;");
-
         assert_eq!(location.line, 1);
         assert_eq!(location.column, 9);
     }
@@ -288,10 +295,12 @@ mod tests {
         let mut expected = Vec::new();
         let equal_token = Token {
             kind: TokenKind::Dot,
+            lexeme: ".".to_string(),
             loc: Location { line: 0, column: 0 },
         };
         let eof_token = Token {
             kind: TokenKind::Eof,
+            lexeme: "EOF".to_string(),
             loc: Location { line: 0, column: 1 },
         };
         expected.push(equal_token);
@@ -306,10 +315,12 @@ mod tests {
         let mut expected = Vec::new();
         let equal_token = Token {
             kind: TokenKind::Dot,
+            lexeme: ".".to_string(),
             loc: Location { line: 1, column: 0 },
         };
         let eof_token = Token {
             kind: TokenKind::Eof,
+            lexeme: "EOF".to_string(),
             loc: Location { line: 1, column: 1 },
         };
         expected.push(equal_token);
@@ -323,18 +334,22 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::EqEq,
+                lexeme: "==".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::BangEq,
+                lexeme: "!=".to_string(),
                 loc: Location { line: 1, column: 2 },
             },
             Token {
                 kind: TokenKind::Plus,
+                lexeme: "+".to_string(),
                 loc: Location { line: 2, column: 4 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 2, column: 5 },
             },
         ];
@@ -347,10 +362,12 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::StringLiteral("hello".to_string()),
+                lexeme: format!(r#""hello""#),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 0, column: 7 },
             },
         ];
@@ -370,10 +387,12 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::INumber(1),
+                lexeme: "1".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 0, column: 1 },
             },
         ];
@@ -386,10 +405,12 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::FNumber(1.23),
+                lexeme: "1.23".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 0, column: 4 },
             },
         ];
@@ -402,10 +423,12 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::Ident("hello123".to_string()),
+                lexeme: "hello123".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 0, column: 8 },
             },
         ];
@@ -419,18 +442,22 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::INumber(1),
+                lexeme: "1".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Plus,
+                lexeme: "+".to_string(),
                 loc: Location { line: 0, column: 1 },
             },
             Token {
                 kind: TokenKind::INumber(2),
+                lexeme: "2".to_string(),
                 loc: Location { line: 0, column: 2 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 0, column: 3 },
             },
         ];
@@ -444,18 +471,22 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::Ident("y".to_string()),
+                lexeme: "y".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Eq,
+                lexeme: "=".to_string(),
                 loc: Location { line: 0, column: 2 },
             },
             Token {
                 kind: TokenKind::StringLiteral("hello".to_string()),
+                lexeme: format!(r#""hello""#),
                 loc: Location { line: 0, column: 4 },
             },
             Token {
                 kind: TokenKind::Semicolon,
+                lexeme: ";".to_string(),
                 loc: Location {
                     line: 0,
                     column: 11,
@@ -463,18 +494,22 @@ mod tests {
             },
             Token {
                 kind: TokenKind::Ident("x".to_string()),
+                lexeme: "x".to_string(),
                 loc: Location { line: 1, column: 1 },
             },
             Token {
                 kind: TokenKind::BangEq,
+                lexeme: "!=".to_string(),
                 loc: Location { line: 1, column: 3 },
             },
             Token {
                 kind: TokenKind::INumber(1),
+                lexeme: "1".to_string(),
                 loc: Location { line: 1, column: 6 },
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location { line: 1, column: 7 },
             },
         ];
@@ -487,26 +522,32 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::INumber(1),
+                lexeme: "1".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::KwOr,
+                lexeme: "or".to_string(),
                 loc: Location { line: 0, column: 2 },
             },
             Token {
                 kind: TokenKind::INumber(2),
+                lexeme: "2".to_string(),
                 loc: Location { line: 0, column: 5 },
             },
             Token {
                 kind: TokenKind::Semicolon,
+                lexeme: ";".to_string(),
                 loc: Location { line: 0, column: 6 },
             },
             Token {
                 kind: TokenKind::Ident("var1".to_string()),
+                lexeme: "var1".to_string(),
                 loc: Location { line: 0, column: 8 },
             },
             Token {
                 kind: TokenKind::Eq,
+                lexeme: "=".to_string(),
                 loc: Location {
                     line: 0,
                     column: 13,
@@ -514,6 +555,7 @@ mod tests {
             },
             Token {
                 kind: TokenKind::Ident("truefalse".to_string()),
+                lexeme: "truefalse".to_string(),
                 loc: Location {
                     line: 0,
                     column: 15,
@@ -521,6 +563,7 @@ mod tests {
             },
             Token {
                 kind: TokenKind::Semicolon,
+                lexeme: ";".to_string(),
                 loc: Location {
                     line: 0,
                     column: 24,
@@ -528,6 +571,7 @@ mod tests {
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location {
                     line: 0,
                     column: 25,
@@ -543,14 +587,17 @@ mod tests {
         let expected = vec![
             Token {
                 kind: TokenKind::KwVar,
+                lexeme: "var".to_string(),
                 loc: Location { line: 0, column: 0 },
             },
             Token {
                 kind: TokenKind::Ident("variable".to_string()),
+                lexeme: "variable".to_string(),
                 loc: Location { line: 0, column: 4 },
             },
             Token {
                 kind: TokenKind::Eq,
+                lexeme: "=".to_string(),
                 loc: Location {
                     line: 0,
                     column: 13,
@@ -558,6 +605,7 @@ mod tests {
             },
             Token {
                 kind: TokenKind::KwTrue,
+                lexeme: "true".to_string(),
                 loc: Location {
                     line: 0,
                     column: 15,
@@ -565,6 +613,7 @@ mod tests {
             },
             Token {
                 kind: TokenKind::Semicolon,
+                lexeme: ";".to_string(),
                 loc: Location {
                     line: 0,
                     column: 19,
@@ -572,6 +621,7 @@ mod tests {
             },
             Token {
                 kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
                 loc: Location {
                     line: 0,
                     column: 20,

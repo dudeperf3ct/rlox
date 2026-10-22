@@ -1,10 +1,12 @@
 use std::fmt;
 
 use crate::lexer::Location;
+use thiserror::Error;
 
 pub type LexerResult<T> = Result<T, LexerError>;
 pub type ParserResult<T> = Result<T, ParserError>;
 
+// TODO: Convert LexerError to thiserror
 #[derive(Debug)]
 pub struct LexerError {
     message: String,
@@ -38,11 +40,11 @@ impl LexerError {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ParserError;
+#[derive(Debug, Error)]
+pub enum ParserError {
+    #[error("Error: missing token.")]
+    MissingToken,
 
-impl fmt::Display for ParserError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "unexpected token")
-    }
+    #[error("Error at '{0}': Expect expression.")]
+    ExpectExpressionFound(String),
 }

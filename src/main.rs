@@ -9,6 +9,7 @@
 mod ast;
 mod errors;
 mod lexer;
+mod parser;
 mod token_type;
 use clap::Parser;
 use std::{error::Error, fs, io};

@@ -1,45 +1,67 @@
-use crate::{
-    errors::{ParserError, ParserResult},
-    lexer::Token,
-    token_type::TokenKind,
-};
+use crate::token_type::TokenKind;
+use std::fmt::Display;
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub enum UnaryOp {
+    Minus,
+    Not,
+}
+
+impl Display for UnaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let c = match self {
+            UnaryOp::Minus => "-",
+            UnaryOp::Not => "!",
+        };
+        write!(f, "{}", c)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BinaryOp {
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Gt,
+    Lt,
+    Eq,
+    LtEq,
+    GtEq,
+    EqEq,
+    BangEq,
+    And,
+    Or,
+}
+
+impl From<TokenKind> for BinaryOp {
+    fn from(kind: TokenKind) -> Self {
+        match kind {
+            TokenKind::Plus => BinaryOp::Plus,
+            TokenKind::Minus => BinaryOp::Minus,
+            TokenKind::Star => BinaryOp::Star,
+            TokenKind::Slash => BinaryOp::Slash,
+            TokenKind::Lt => BinaryOp::Lt,
+            TokenKind::Gt => BinaryOp::Gt,
+            TokenKind::Eq => BinaryOp::Eq,
+            TokenKind::LtEq => BinaryOp::LtEq,
+            TokenKind::GtEq => BinaryOp::GtEq,
+            TokenKind::EqEq => BinaryOp::EqEq,
+            TokenKind::BangEq => BinaryOp::BangEq,
+            TokenKind::And => BinaryOp::And,
+            TokenKind::Or => BinaryOp::Or,
+            _ => unreachable!(),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
-    Literal(i64),
+    Int(i64),
+    Float(f64),
+    Boolean(bool),
+    String(String),
 
-    Binary {
-        left: Box<Expr>,
-        right: Box<Expr>,
-        operator: TokenKind,
-    },
-}
-
-fn parse(inputs: &[Token]) -> ParserResult<Expr> {
-    let mut expression: Option<Expr> = None;
-    let mut tokens = inputs.iter();
-    while let Some(token) = tokens.next() {
-        match token.kind {
-            TokenKind::INumber(x) => expression = Some(Expr::Literal(x)),
-            TokenKind::Eof => return expression.ok_or(ParserError),
-            _ => return Err(ParserError),
-        };
-    }
-    Err(ParserError)
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::lexer::tokenize;
-
-    use super::*;
-
-    #[test]
-    fn parse_integer_literal() {
-        let tokens = tokenize("42").unwrap();
-        let ast = parse(tokens.as_slice());
-        let expected = Expr::Literal(42);
-
-        assert_eq!(ast.unwrap(), expected);
-    }
+    Binary(Box<Expr>, BinaryOp, Box<Expr>),
+    Unary(UnaryOp, Box<Expr>),
 }
