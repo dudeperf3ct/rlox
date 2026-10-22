@@ -6,6 +6,7 @@
 // Scanning
 // Read source code and extract tokens
 
+mod ast;
 mod errors;
 mod lexer;
 mod token_type;

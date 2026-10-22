@@ -3,6 +3,7 @@ use std::fmt;
 use crate::lexer::Location;
 
 pub type LexerResult<T> = Result<T, LexerError>;
+pub type ParserResult<T> = Result<T, ParserError>;
 
 #[derive(Debug)]
 pub struct LexerError {
@@ -34,5 +35,14 @@ impl LexerError {
             location: Some(location),
             ..self
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ParserError;
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "unexpected token")
     }
 }
