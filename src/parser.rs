@@ -127,9 +127,26 @@ impl Parser {
         Ok(ast)
     }
 
-    // expression -> comparison
+    // equality -> comparison (("==" | "!=") comparison)*
+    fn equality(&mut self) -> ParserResult<Expr> {
+        let mut ast = self.comparison()?;
+        while let Some(token) = self.peek() {
+            match token.kind {
+                TokenKind::EqEq | TokenKind::BangEq => {
+                    let binop = token.kind.clone().into();
+                    self.next_token()?;
+                    let right = self.comparison()?;
+                    ast = Expr::Binary(Box::new(ast), binop, Box::new(right))
+                }
+                _ => break,
+            }
+        }
+        Ok(ast)
+    }
+
+    // expression -> equality
     fn expression(&mut self) -> ParserResult<Expr> {
-        self.comparison()
+        self.equality()
     }
 
     // Parser convert tokens into expression
@@ -146,7 +163,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::tokenize;
+    use crate::{ast::Expr::Binary, lexer::tokenize};
 
     macro_rules! test_parse {
         ($name:ident, $source:expr, $expected:expr) => {
@@ -349,5 +366,59 @@ mod tests {
     test_parse!(
         error parse_comparison_missing_operand,
         "1 >"
+    );
+
+    test_parse!(
+        parse_equality,
+        "true == false",
+        binary(Expr::Boolean(true), TokenKind::EqEq, Expr::Boolean(false))
+    );
+
+    test_parse!(
+        parse_no_equality,
+        "true != false",
+        binary(Expr::Boolean(true), TokenKind::BangEq, Expr::Boolean(false))
+    );
+
+    test_parse!(
+        parse_equality_precedence,
+        "1 + 2 > 3 == false",
+        binary(
+            binary(
+                binary(Expr::Int(1), TokenKind::Plus, Expr::Int(2)),
+                TokenKind::Gt,
+                Expr::Int(3)
+            ),
+            TokenKind::EqEq,
+            Expr::Boolean(false)
+        )
+    );
+
+    test_parse!(
+        parse_nested_equality_precedence,
+        "1 + 2 > (3 * 4) == false",
+        binary(
+            binary(
+                binary(Expr::Int(1), TokenKind::Plus, Expr::Int(2)),
+                TokenKind::Gt,
+                Expr::Grouping(Box::new(binary(
+                    Expr::Int(3),
+                    TokenKind::Star,
+                    Expr::Int(4)
+                )))
+            ),
+            TokenKind::EqEq,
+            Expr::Boolean(false)
+        )
+    );
+
+    test_parse!(
+        parse_equality_left_associativity,
+        "1 == 2 != 3",
+        binary(
+            binary(Expr::Int(1), TokenKind::EqEq, Expr::Int(2)),
+            TokenKind::BangEq,
+            Expr::Int(3)
+        )
     );
 }
