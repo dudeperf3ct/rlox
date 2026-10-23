@@ -110,9 +110,26 @@ impl Parser {
         Ok(ast)
     }
 
-    // expression -> term
+    // comparison -> term ((">" | ">=" | "<" | "<=") term)*
+    fn comparison(&mut self) -> ParserResult<Expr> {
+        let mut ast = self.term()?;
+        while let Some(token) = self.peek() {
+            match token.kind {
+                TokenKind::Gt | TokenKind::GtEq | TokenKind::Lt | TokenKind::LtEq => {
+                    let binop = token.kind.clone().into();
+                    self.next_token()?;
+                    let right = self.term()?;
+                    ast = Expr::Binary(Box::new(ast), binop, Box::new(right))
+                }
+                _ => break,
+            }
+        }
+        Ok(ast)
+    }
+
+    // expression -> comparison
     fn expression(&mut self) -> ParserResult<Expr> {
-        self.term()
+        self.comparison()
     }
 
     // Parser convert tokens into expression
@@ -174,18 +191,6 @@ mod tests {
     test_parse!(error parse_invalid_operator_sequence, "1 + * 2");
 
     test_parse!(error parse_empty_expression, "");
-
-    test_parse!(error parse_invalid_group, "(1 + 2");
-
-    test_parse!(error parse_empty_group, "()");
-
-    test_parse!(error parse_extra_closing_paren, "(1 + 2))");
-
-    test_parse!(error parse_missing_inner_paren, "((1 + 2)");
-
-    test_parse!(parse_integer, "42", Expr::Int(42));
-
-    test_parse!(parse_float, "3.14", Expr::Float(3.14));
 
     test_parse!(
         parse_string,
@@ -291,15 +296,58 @@ mod tests {
         )))))
     );
 
+    test_parse!(error parse_invalid_group, "(1 + 2");
+
+    test_parse!(error parse_empty_group, "()");
+
+    test_parse!(error parse_extra_closing_paren, "(1 + 2))");
+
+    test_parse!(error parse_missing_inner_paren, "((1 + 2)");
+
     test_parse!(parse_true_literal, "true", Expr::Boolean(true));
 
     test_parse!(parse_false_literal, "false", Expr::Boolean(false));
 
     test_parse!(parse_nil_literal, "nil", Expr::Nil);
 
+    test_parse!(parse_integer, "42", Expr::Int(42));
+
+    test_parse!(parse_float, "3.14", Expr::Float(3.14));
+
     test_parse!(
         parse_unary_boolean,
         "!false",
         unary(UnaryOp::Not, Expr::Boolean(false))
+    );
+
+    test_parse!(
+        parse_comparison_greater_than,
+        "3 > 2",
+        binary(Expr::Int(3), TokenKind::Gt, Expr::Int(2))
+    );
+
+    test_parse!(
+        parse_comparison_precedence,
+        "1 + 2 >= 3 * 4",
+        binary(
+            binary(Expr::Int(1), TokenKind::Plus, Expr::Int(2)),
+            TokenKind::GtEq,
+            binary(Expr::Int(3), TokenKind::Star, Expr::Int(4))
+        )
+    );
+
+    test_parse!(
+        parse_comparison_chained,
+        "1 < 2 <= 3",
+        binary(
+            binary(Expr::Int(1), TokenKind::Lt, Expr::Int(2)),
+            TokenKind::LtEq,
+            Expr::Int(3)
+        )
+    );
+
+    test_parse!(
+        error parse_comparison_missing_operand,
+        "1 >"
     );
 }
