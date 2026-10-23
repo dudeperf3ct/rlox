@@ -144,9 +144,43 @@ impl Parser {
         Ok(ast)
     }
 
-    // expression -> equality
+    // logic_or   → logic_and ("or" logic_and)*
+    fn logic_or(&mut self) -> ParserResult<Expr> {
+        let mut ast = self.logic_and()?;
+        while let Some(token) = self.peek() {
+            match token.kind {
+                TokenKind::KwOr => {
+                    let binop = token.kind.clone().into();
+                    self.next_token()?;
+                    let right = self.logic_and()?;
+                    ast = Expr::Binary(Box::new(ast), binop, Box::new(right))
+                }
+                _ => break,
+            }
+        }
+        Ok(ast)
+    }
+
+    // logic_and  → equality ("and" equality)*
+    fn logic_and(&mut self) -> ParserResult<Expr> {
+        let mut ast = self.equality()?;
+        while let Some(token) = self.peek() {
+            match token.kind {
+                TokenKind::KwAnd => {
+                    let binop = token.kind.clone().into();
+                    self.next_token()?;
+                    let right = self.equality()?;
+                    ast = Expr::Binary(Box::new(ast), binop, Box::new(right))
+                }
+                _ => break,
+            }
+        }
+        Ok(ast)
+    }
+
+    // expression -> logic_or
     fn expression(&mut self) -> ParserResult<Expr> {
-        self.equality()
+        self.logic_or()
     }
 
     // Parser convert tokens into expression
@@ -420,5 +454,37 @@ mod tests {
             TokenKind::BangEq,
             Expr::Int(3)
         )
+    );
+
+    test_parse!(
+        error parse_equality_missing_operand,
+        "1 =="
+    );
+
+    test_parse!(
+        parse_logical_and,
+        "true and false",
+        binary(Expr::Boolean(true), TokenKind::KwAnd, Expr::Boolean(false))
+    );
+
+    test_parse!(
+        parse_logical_or,
+        "true or false",
+        binary(Expr::Boolean(true), TokenKind::KwOr, Expr::Boolean(false))
+    );
+
+    test_parse!(
+        parse_logical_precedence,
+        "true or false and true",
+        binary(
+            Expr::Boolean(true),
+            TokenKind::KwOr,
+            binary(Expr::Boolean(false), TokenKind::KwAnd, Expr::Boolean(true))
+        )
+    );
+
+    test_parse!(
+        error parse_logical_missing_operand,
+        "true and"
     );
 }
