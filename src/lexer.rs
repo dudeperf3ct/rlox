@@ -450,6 +450,34 @@ mod tests {
     }
 
     #[test]
+    fn tokenize_string_addition() {
+        let lox_code = "a+b";
+        let expected = vec![
+            Token {
+                kind: TokenKind::Ident("a".to_string()),
+                lexeme: "a".to_string(),
+                loc: Location { line: 0, column: 0 },
+            },
+            Token {
+                kind: TokenKind::Plus,
+                lexeme: "+".to_string(),
+                loc: Location { line: 0, column: 1 },
+            },
+            Token {
+                kind: TokenKind::Ident("b".to_string()),
+                lexeme: "b".to_string(),
+                loc: Location { line: 0, column: 2 },
+            },
+            Token {
+                kind: TokenKind::Eof,
+                lexeme: "EOF".to_string(),
+                loc: Location { line: 0, column: 3 },
+            },
+        ];
+        assert_eq!(tokenize(lox_code).unwrap(), expected);
+    }
+
+    #[test]
     fn tokenize_number_followed_by_operator() {
         let lox_code = "1+2";
 

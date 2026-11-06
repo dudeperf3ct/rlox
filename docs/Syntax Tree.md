@@ -6,7 +6,7 @@ Input : `1 + 2`
 
 Lexer Output:
 
-```rust
+```txt
 [
     INumber(1),
     Plus,

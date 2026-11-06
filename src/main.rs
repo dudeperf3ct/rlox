@@ -8,9 +8,11 @@
 
 mod ast;
 mod errors;
+mod eval;
 mod lexer;
 mod parser;
 mod token_type;
+mod values;
 use clap::Parser;
 use std::{error::Error, fs, io};
 
