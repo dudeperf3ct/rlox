@@ -5,6 +5,7 @@ use thiserror::Error;
 
 pub type LexerResult<T> = Result<T, LexerError>;
 pub type ParserResult<T> = Result<T, ParserError>;
+pub type EvalResult<T> = Result<T, RuntimeError>;
 
 // TODO: Convert LexerError to thiserror
 #[derive(Debug)]
@@ -53,4 +54,10 @@ pub enum ParserError {
 
     #[error("Error {0}.")]
     MissingTokenMsg(String),
+}
+
+#[derive(Debug, Error)]
+pub enum RuntimeError {
+    #[error("Error {0}.")]
+    Error(String),
 }

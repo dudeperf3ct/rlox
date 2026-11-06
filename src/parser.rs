@@ -14,7 +14,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    fn new(mut tokens: Vec<Token>) -> Parser {
+    pub fn new(mut tokens: Vec<Token>) -> Parser {
         // Since we are using vec of tokens, reverse the tokens when constructing the parser
         tokens.reverse();
         Parser { tokens }
@@ -153,7 +153,7 @@ impl Parser {
                     let binop = token.kind.clone().into();
                     self.next_token()?;
                     let right = self.logic_and()?;
-                    ast = Expr::Binary(Box::new(ast), binop, Box::new(right))
+                    ast = Expr::Logical(Box::new(ast), binop, Box::new(right))
                 }
                 _ => break,
             }
@@ -170,7 +170,7 @@ impl Parser {
                     let binop = token.kind.clone().into();
                     self.next_token()?;
                     let right = self.equality()?;
-                    ast = Expr::Binary(Box::new(ast), binop, Box::new(right))
+                    ast = Expr::Logical(Box::new(ast), binop, Box::new(right))
                 }
                 _ => break,
             }
@@ -184,7 +184,7 @@ impl Parser {
     }
 
     // Parser convert tokens into expression
-    fn parse(&mut self) -> ParserResult<Expr> {
+    pub fn parse(&mut self) -> ParserResult<Expr> {
         let ast = self.expression()?;
         let token = self.next_token()?;
         if token.kind != TokenKind::Eof || !self.tokens.is_empty() {
@@ -197,7 +197,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ast::Expr::Binary, lexer::tokenize};
+    use crate::lexer::tokenize;
 
     macro_rules! test_parse {
         ($name:ident, $source:expr, $expected:expr) => {
@@ -227,6 +227,10 @@ mod tests {
 
     fn binary(left: Expr, op: TokenKind, right: Expr) -> Expr {
         Expr::Binary(Box::new(left), op.into(), Box::new(right))
+    }
+
+    fn logical(left: Expr, op: TokenKind, right: Expr) -> Expr {
+        Expr::Logical(Box::new(left), op.into(), Box::new(right))
     }
 
     fn unary(op: UnaryOp, expr: Expr) -> Expr {
@@ -271,6 +275,16 @@ mod tests {
         parse_addition,
         "1 + 2",
         binary(Expr::Int(1), TokenKind::Plus, Expr::Int(2))
+    );
+
+    test_parse!(
+        parse_addition_string,
+        r#""a"+"b""#,
+        binary(
+            Expr::String("a".to_string()),
+            TokenKind::Plus,
+            Expr::String("b".to_string())
+        )
     );
 
     test_parse!(
@@ -464,22 +478,22 @@ mod tests {
     test_parse!(
         parse_logical_and,
         "true and false",
-        binary(Expr::Boolean(true), TokenKind::KwAnd, Expr::Boolean(false))
+        logical(Expr::Boolean(true), TokenKind::KwAnd, Expr::Boolean(false))
     );
 
     test_parse!(
         parse_logical_or,
         "true or false",
-        binary(Expr::Boolean(true), TokenKind::KwOr, Expr::Boolean(false))
+        logical(Expr::Boolean(true), TokenKind::KwOr, Expr::Boolean(false))
     );
 
     test_parse!(
         parse_logical_precedence,
         "true or false and true",
-        binary(
+        logical(
             Expr::Boolean(true),
             TokenKind::KwOr,
-            binary(Expr::Boolean(false), TokenKind::KwAnd, Expr::Boolean(true))
+            logical(Expr::Boolean(false), TokenKind::KwAnd, Expr::Boolean(true))
         )
     );
 

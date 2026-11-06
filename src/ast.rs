@@ -25,13 +25,32 @@ pub enum BinaryOp {
     Slash,
     Gt,
     Lt,
-    Eq,
     LtEq,
     GtEq,
     EqEq,
     BangEq,
     And,
     Or,
+}
+
+impl Display for BinaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let c = match self {
+            BinaryOp::Plus => "+",
+            BinaryOp::Minus => "-",
+            BinaryOp::Star => "*",
+            BinaryOp::Slash => "/",
+            BinaryOp::Lt => "<",
+            BinaryOp::Gt => ">",
+            BinaryOp::EqEq => "==",
+            BinaryOp::LtEq => "<=",
+            BinaryOp::GtEq => ">=",
+            BinaryOp::BangEq => "!=",
+            BinaryOp::Or => "or",
+            BinaryOp::And => "and",
+        };
+        write!(f, "{}", c)
+    }
 }
 
 impl From<TokenKind> for BinaryOp {
@@ -43,13 +62,26 @@ impl From<TokenKind> for BinaryOp {
             TokenKind::Slash => BinaryOp::Slash,
             TokenKind::Lt => BinaryOp::Lt,
             TokenKind::Gt => BinaryOp::Gt,
-            TokenKind::Eq => BinaryOp::Eq,
             TokenKind::LtEq => BinaryOp::LtEq,
             TokenKind::GtEq => BinaryOp::GtEq,
             TokenKind::EqEq => BinaryOp::EqEq,
             TokenKind::BangEq => BinaryOp::BangEq,
-            TokenKind::KwAnd => BinaryOp::And,
-            TokenKind::KwOr => BinaryOp::Or,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LogicalOp {
+    And,
+    Or,
+}
+
+impl From<TokenKind> for LogicalOp {
+    fn from(kind: TokenKind) -> Self {
+        match kind {
+            TokenKind::KwAnd => LogicalOp::And,
+            TokenKind::KwOr => LogicalOp::Or,
             _ => unreachable!(),
         }
     }
@@ -66,4 +98,5 @@ pub enum Expr {
     Binary(Box<Expr>, BinaryOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
     Grouping(Box<Expr>),
+    Logical(Box<Expr>, LogicalOp, Box<Expr>),
 }
